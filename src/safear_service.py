@@ -1,7 +1,6 @@
 import base64
 import os
 from io import BytesIO
-from typing import Any
 
 import cupy as cp
 import imageio
@@ -10,18 +9,11 @@ import yaml
 from src.obfuscator import ImageObfuscator
 from src.seg_yolov8 import Yolov8seg
 
-# # Reload the modules
-# importlib.reload(seg_yolov8)
-# importlib.reload(obfuscator)
-# Import the classes from the reloaded modules
-
-
 class SafeARService:
-
     def __init__(self):
         self.obfuscator = None
         self.model = None
-        self.obfuscation_policies: dict[str, Any] = {}
+        self.obfuscation_policies = {}
 
     def configure(self, model_number: int, obfuscation_policies: dict):
         config_yml = self.load_config()
@@ -41,28 +33,51 @@ class SafeARService:
         Returns:
             safe_frame_bytes: the processed frame, encoded in bytes
         """
-        # Decode the Base64 image string to bytes
-        image_bytes = base64.b64decode(image_base64)
-        print(f"Image bytes: {len(image_bytes)}")
-        # Create a buffer (`BytesIO` object) from the image bytes
-        buffer = BytesIO(image_bytes)
+        try:
+            # Decode the Base64 image string to bytes
+            image_bytes = base64.b64decode(image_base64.encode("utf-8"))
+            print(f"Image bytes length: {len(image_bytes)}")
+            
+            # Create a buffer (`BytesIO` object) from the image bytes
+            buffer = BytesIO(image_bytes)
 
-        # Read the image from the buffer using imageio
-        img_array = imageio.v2.imread(buffer)
-        # Convert the Numpy array to a cuPY array
-        frame = cp.asarray(img_array)
+            # Read the image from the buffer using imageio
+            img_array = imageio.v2.imread(buffer)
+            # Convert the Numpy array to a cuPY array
+            frame = cp.asarray(img_array)
 
-        # DEBUG: save the input frame
-        imageio.imwrite("outputs/img_in_flask_2.png", frame.get())
+            # DEBUG: Save the original frame
+            original_frame_path = "outputs/original_frame.png"
+            imageio.imwrite(original_frame_path, frame.get())
 
-        boxes, masks = self.model(frame)
-        safe_frame = self.obfuscator.obfuscate(
-            image=frame, masks=masks, class_ids=[int(box[5]) for box in boxes]
-        )
+            # Perform inference
+            boxes, masks = self.model(frame)
+            print(f"Model output boxes: {boxes}")
+            print(f"Model output masks: {masks}")
 
-        safe_frame = safe_frame.astype(cp.uint8)
-        safe_frame_bytes = safe_frame.tobytes()
-        return safe_frame_bytes
+            # Check if the model returned any boxes or masks
+            if len(boxes) == 0 or len(masks) == 0:
+                print("No objects detected, returning the original frame.")
+                safe_frame = frame
+            else:
+                safe_frame = self.obfuscator.obfuscate(
+                    image=frame, masks=masks, class_ids=[int(box[5]) for box in boxes]
+                )
+
+            safe_frame = safe_frame.astype(cp.uint8)
+            
+            # DEBUG: Save the obfuscated frame
+            obfuscated_frame_path = "outputs/obfuscated_frame.png"
+            imageio.imwrite(obfuscated_frame_path, safe_frame.get())
+
+            # Convert the processed frame to bytes
+            safe_frame_bytes = safe_frame.tobytes()
+
+            return safe_frame_bytes
+
+        except Exception as e:
+            print(f"Error processing image: {e}")
+            return None
 
     @staticmethod
     def read_base64_image(file_path):

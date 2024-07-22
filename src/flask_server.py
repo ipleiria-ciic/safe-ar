@@ -59,21 +59,22 @@ def safeAR_service():
         data = request.get_json()
         if data is None or "img" not in data:
             return jsonify({"error": "No valid request body, json missing!"}), 400
-        # TODO: no canal tem de vir a classe a ser obfuscada e o tipo de obfuscation!
+        
         img_data = data["img"]
-        # Ensure the base64 string is correctly padded
         img_data += "=" * ((4 - len(img_data) % 4) % 4)
-        # Decode the base64 image data
-        # img_bytes = base64.b64decode(img_data)
 
         # Initialize the SafeARService
         safe_ar_service = SafeARService()
 
         # Configure the SafeARService with the desired model number and obfuscation policies
-        safe_ar_service.configure(model_number=0, obfuscation_policies={0: "blurring"})
+        obfuscation_policies = data.get("obfuscation_policies", {})
+        safe_ar_service.configure(model_number=0, obfuscation_policies=obfuscation_policies)
 
         # Image Obfuscation using the SafeARService
         processed_frame_bytes = safe_ar_service.process_frame(img_data)
+
+        if not processed_frame_bytes:
+            return jsonify({"error": "Processed frame is empty"}), 500
 
         # Encode the processed frame as base64
         safeAR_image_base64 = base64.b64encode(processed_frame_bytes).decode("utf-8")
@@ -82,6 +83,7 @@ def safeAR_service():
     except Exception as e:
         app.logger.error(f"Error processing image: {e}")
         return jsonify({"error": "Failed to process image"}), 500
+
 
 
 @app.route("/status")
