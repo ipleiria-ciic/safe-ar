@@ -1,21 +1,3 @@
-"""
- TODO:
-    ! Implementar "warm-up" do modelo (5 ciclos de inferencia)- to do
-    !! O que deve e tem de ir nos metadados do frame, e como pode ser codificado no base64?
-    1.2) Criar variável de entrada e saída para o sistema de obfuscação - to do
-    1.3) Testar output dos modelos Yolov9, Gelan e RTMDet e implementar class para adaptar a saída - 30% done
-    2) Implementar frame obfuscatiom striding - implementar logica que está no Unity
-
-    Usage:
-    python main.py \
-        --model_number 0 \
-        --class_id_list 0 1 \
-        --obfuscation_type_list "pixelation" "masking" \
-        --image_base64_file "test_samples/images/img_640x640_base64.txt" \
-        --square 10 \
-        --sigma 5
-"""
-
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
@@ -23,6 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), 'src')))
 import argparse
 import importlib
 import os
+import logging
 
 import src.seg_yolov8
 from src.safear_service import SafeARService
@@ -31,6 +14,8 @@ from src.safear_service import SafeARService
 importlib.reload(src.seg_yolov8)
 importlib.reload(src.safear_service)
 
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 def main(args):
     safeARservice = SafeARService()
@@ -40,10 +25,13 @@ def main(args):
         obfuscation_policies=args.obfuscate_policies,
     )
 
+    # Log the policies
+    logger.debug(f"Configured with model_number: {args.model_number}")
+    logger.debug(f"Obfuscation policies: {args.obfuscate_policies}")
+
     frame_bytes = safeARservice.process_frame(args.image_base64)
 
     return frame_bytes
-
 
 def parse_args():
     arg_parser = argparse.ArgumentParser(description="Obfuscation script")
@@ -100,8 +88,11 @@ def parse_args():
         arg_parser.print_help()
         exit()
 
-    # Create the obfuscate_policies dictionary directly in the parser
-    args.obfuscate_policies = dict(zip(args.class_id_list, args.obfuscation_type_list))
+    # Check if class_id_list and obfuscation_type_list are provided
+    if args.class_id_list and args.obfuscation_type_list:
+        args.obfuscate_policies = dict(zip(args.class_id_list, args.obfuscation_type_list))
+    else:
+        args.obfuscate_policies = {}
 
     # Print the absolute path of the file
     abs_path = os.path.abspath(args.image_base64_file)

@@ -5,9 +5,12 @@ from io import BytesIO
 import cupy as cp
 import imageio
 import yaml
+import logging
 
 from src.obfuscator import ImageObfuscator
 from src.seg_yolov8 import Yolov8seg
+
+logger = logging.getLogger(__name__)
 
 class SafeARService:
     def __init__(self):
@@ -25,59 +28,46 @@ class SafeARService:
         self.obfuscator = ImageObfuscator(policies=self.obfuscation_policies)
 
     def process_frame(self, image_base64: str) -> bytes:
-        """
-        Process a frame by detecting objects and applying obfuscation.
-        Args:
-            image_base64: str representation of an image, encoded in Base64 format
-
-        Returns:
-            safe_frame_bytes: the processed frame, encoded in bytes
-        """
         try:
-            # Decode the Base64 image string to bytes
+            # Decode the base64 image data
             image_bytes = base64.b64decode(image_base64.encode("utf-8"))
-            print(f"Image bytes length: {len(image_bytes)}")
+            logger.info(f"Decoded image bytes length: {len(image_bytes)}")
             
-            # Create a buffer (`BytesIO` object) from the image bytes
+            # Save the decoded image to a file for debugging
+            with open("outputs/decoded_image.png", "wb") as f:
+                f.write(image_bytes)
+            
+            # Read the image data into an array
             buffer = BytesIO(image_bytes)
-
-            # Read the image from the buffer using imageio
             img_array = imageio.v2.imread(buffer)
-            # Convert the Numpy array to a cuPY array
+            logger.info(f"Read image array shape: {img_array.shape}")
+            
             frame = cp.asarray(img_array)
-
-            # DEBUG: Save the original frame
-            original_frame_path = "outputs/original_frame.png"
-            imageio.imwrite(original_frame_path, frame.get())
-
-            # Perform inference
+            
+            # Process the image using the model
             boxes, masks = self.model(frame)
-            print(f"Model output boxes: {boxes}")
-            print(f"Model output masks: {masks}")
-
-            # Check if the model returned any boxes or masks
+            logger.info(f"Model output: {len(boxes)} boxes, {len(masks)} masks")
+            
             if len(boxes) == 0 or len(masks) == 0:
-                print("No objects detected, returning the original frame.")
+                logger.warning("No objects detected, returning the original frame.")
                 safe_frame = frame
             else:
                 safe_frame = self.obfuscator.obfuscate(
                     image=frame, masks=masks, class_ids=[int(box[5]) for box in boxes]
                 )
-
-            safe_frame = safe_frame.astype(cp.uint8)
             
-            # DEBUG: Save the obfuscated frame
-            obfuscated_frame_path = "outputs/obfuscated_frame.png"
-            imageio.imwrite(obfuscated_frame_path, safe_frame.get())
-
-            # Convert the processed frame to bytes
+            safe_frame = safe_frame.astype(cp.uint8)
             safe_frame_bytes = safe_frame.tobytes()
-
+            logger.info(f"Processed frame bytes length: {len(safe_frame_bytes)}")
+            
+            # Save the processed frame for debugging
+            safe_frame_array = cp.asnumpy(safe_frame).reshape(img_array.shape)
+            imageio.imwrite("outputs/processed_image.png", safe_frame_array)
+            
             return safe_frame_bytes
-
         except Exception as e:
-            print(f"Error processing image: {e}")
-            return None
+            logger.exception(f"Error processing image: {e}")
+            return None    
 
     @staticmethod
     def read_base64_image(file_path):
@@ -98,11 +88,8 @@ class SafeARService:
 
     @staticmethod
     def load_config() -> dict:
-        # Get the current directory
         current_directory = os.path.dirname(os.path.abspath(__file__))
-        # Get the parent directory
         parent_directory = os.path.dirname(current_directory)
-        # Construct the path to the config.yml file
         config_file_path = os.path.join(parent_directory, "config.yml")
 
         with open(file=config_file_path, mode="r", encoding="utf-8") as file:

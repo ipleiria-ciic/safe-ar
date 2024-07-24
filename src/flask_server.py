@@ -31,9 +31,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import base64
 import logging
-
 from flask import Flask, request, render_template, send_from_directory, jsonify
-
 from src.safear_service import SafeARService
 
 # Initialize the Flask app
@@ -52,38 +50,51 @@ app.config["SEND_FILE_MAX_AGE_DEFAULT"] = 0
 app.config["STATIC_FOLDER"] = "templates"
 
 
+# Set up logging
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
+
 @app.route("/obfuscate", methods=["POST"])
 def safeAR_service():
     try:
-        # Extract the base64 image data from the JSON payload
         data = request.get_json()
+        model_number = data.get('model_number', 0)
+        class_id_list = data.get('class_id_list')
+        obfuscation_type_list = data.get('obfuscation_type_list')
+
+        # Log the incoming request data
+        logging.debug(f"Received request data: {data}")
+
         if data is None or "img" not in data:
+            logger.error("No valid request body or 'img' missing in JSON")
             return jsonify({"error": "No valid request body, json missing!"}), 400
         
         img_data = data["img"]
+        logger.info(f"Received base64 image data of length: {len(img_data)}")
+        
         img_data += "=" * ((4 - len(img_data) % 4) % 4)
-
-        # Initialize the SafeARService
+        
         safe_ar_service = SafeARService()
-
-        # Configure the SafeARService with the desired model number and obfuscation policies
-        obfuscation_policies = data.get("obfuscation_policies", {})
+        obfuscation_policies = data.get("obfuscation_type_list")
+        obfuscation_policies = dict(zip(class_id_list, obfuscation_type_list))
+        logging.info(f"Obfuscation policies: {obfuscation_policies}")
+        
         safe_ar_service.configure(model_number=0, obfuscation_policies=obfuscation_policies)
-
-        # Image Obfuscation using the SafeARService
+        
         processed_frame_bytes = safe_ar_service.process_frame(img_data)
-
+        
         if not processed_frame_bytes:
+            logger.error("Processed frame is empty")
             return jsonify({"error": "Processed frame is empty"}), 500
-
-        # Encode the processed frame as base64
+        
         safeAR_image_base64 = base64.b64encode(processed_frame_bytes).decode("utf-8")
-
+        logger.info(f"Returning base64 image of length: {len(safeAR_image_base64)}")
+        logger.debug(f"Returning base64 image: {safeAR_image_base64[:100]}")
+        
         return jsonify({"img": safeAR_image_base64})
     except Exception as e:
-        app.logger.error(f"Error processing image: {e}")
+        logger.exception(f"Error processing image: {e}")
         return jsonify({"error": "Failed to process image"}), 500
-
 
 
 @app.route("/status")
@@ -123,3 +134,4 @@ def shutdown():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8080, debug=True)
+
