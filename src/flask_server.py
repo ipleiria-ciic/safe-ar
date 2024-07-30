@@ -68,30 +68,25 @@ def safeAR_service():
         if data is None or "img" not in data:
             logger.error("No valid request body or 'img' missing in JSON")
             return jsonify({"error": "No valid request body, json missing!"}), 400
-        
+
         img_data = data["img"]
         logger.info(f"Received base64 image data of length: {len(img_data)}")
-        
+
         img_data += "=" * ((4 - len(img_data) % 4) % 4)
-        
+
         safe_ar_service = SafeARService()
-        obfuscation_policies = data.get("obfuscation_type_list")
         obfuscation_policies = dict(zip(class_id_list, obfuscation_type_list))
         logging.info(f"Obfuscation policies: {obfuscation_policies}")
-        
-        safe_ar_service.configure(model_number=0, obfuscation_policies=obfuscation_policies)
-        
-        processed_frame_bytes = safe_ar_service.process_frame(img_data)
-        
-        if not processed_frame_bytes:
-            logger.error("Processed frame is empty")
-            return jsonify({"error": "Processed frame is empty"}), 500
-        
-        safeAR_image_base64 = base64.b64encode(processed_frame_bytes).decode("utf-8")
-        logger.info(f"Returning base64 image of length: {len(safeAR_image_base64)}")
-        logger.debug(f"Returning base64 image: {safeAR_image_base64[:100]}")
-        
-        return jsonify({"img": safeAR_image_base64})
+
+        safe_ar_service.configure(model_number=model_number, obfuscation_policies=obfuscation_policies)
+
+        detected_objects = safe_ar_service.process_frame(img_data)
+
+        if detected_objects is None:
+            logger.error("Error processing frame")
+            return jsonify({"error": "Error processing frame"}), 500
+
+        return jsonify({"detected_objects": detected_objects})
     except Exception as e:
         logger.exception(f"Error processing image: {e}")
         return jsonify({"error": "Failed to process image"}), 500
