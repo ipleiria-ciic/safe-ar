@@ -49,10 +49,11 @@ class SafeARService:
                 return []
 
             detected_objects = []
-            for box in boxes:
+            for i, box in enumerate(boxes):
                 detected_objects.append({
                     'class_id': int(box[5]),
-                    'bbox': [int(box[0]), int(box[1]), int(box[2]), int(box[3])]
+                    'bbox': [int(box[0]), int(box[1]), int(box[2]), int(box[3])],
+                    'mask': cp.asnumpy(masks[i]).tolist()  # Convert mask to a list of lists for JSON serialization
                 })
 
             return detected_objects
