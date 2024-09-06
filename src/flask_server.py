@@ -70,7 +70,7 @@ def safeAR_service():
             return jsonify({"error": "No valid request body, json missing!"}), 400
 
         img_data = data["img"]
-        logger.info(f"Received base64 image data of length: {len(img_data)}")
+        #logger.info(f"Received base64 image data of length: {len(img_data)}")
 
         img_data += "=" * ((4 - len(img_data) % 4) % 4)
 
@@ -128,5 +128,6 @@ def shutdown():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0", port=8080, debug=True, ssl_context=('/mnt/c/users/ivo/desktop/ServerSafeAR/SafeAR/src/fullchain.pem', '/mnt/c/users/ivo/desktop/ServerSafeAR/SafeAR/src/privkey.pem'))
+
 
