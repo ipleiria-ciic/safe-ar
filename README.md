@@ -212,12 +212,11 @@ processed_frame_bytes = safe_ar_service.process_frame(image_base64)
 safe_ar_service.save_processed_frame(processed_frame_bytes, "outputs/img_out.png")
 ```
 
-TODOs
+Future work
 -----
 
-Here are the main tasks we need to complete:
+Some possible future work:
 
-- [ ] Update all documentation to reflect the latest changes and features
 - [ ] Implement model selection feature pipeline
 - [ ] Develop metadata anonymization functionality
 - [ ] Integrate mobile device sensor data utilization
