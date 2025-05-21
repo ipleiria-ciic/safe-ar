@@ -228,7 +228,7 @@ isbn="978-3-031-84617-5"
 doi="10.1007/978-3-031-84617-5_12"
 }
 
-@InProceedings{10.1007/978-3-031-84617-5_12,
+@InProceedings{medespaper,
 author=Alves, M., Ribeiro, T., Marto, A., Gonçalves, A., Rabadão, C., Santos, L., & de C. Costa, R. L.,
 title="Evaluating Service-based Privacy-Protection for Augmented Reality Applications",
 booktitle="Management of Digital EcoSystems",
