@@ -214,7 +214,7 @@ safe_ar_service.save_processed_frame(processed_frame_bytes, "outputs/img_out.png
 
 ## Citation 
 
-If you use SafeAR service or any part of the code in this repository, please cite the following papers: 
+If you use the SafeAR service or any piece of the code available in this repository, please cite the following paper:
 
 ```bibtex
 @InProceedings{10.1007/978-3-031-84617-5_12,
