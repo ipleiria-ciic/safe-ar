@@ -212,6 +212,33 @@ processed_frame_bytes = safe_ar_service.process_frame(image_base64)
 safe_ar_service.save_processed_frame(processed_frame_bytes, "outputs/img_out.png")
 ```
 
+## Citation 
+
+If you use SafeAR service or any part of the code in this repository, please cite the following papers: 
+
+```bibtex
+@InProceedings{10.1007/978-3-031-84617-5_12,
+author="de C. Costa, Rog{\'e}rio Lu{\'i}s and Marto, Anabela and Santos, Leonel and Gon{\c{c}}alves, Alexandrino and Rabad{\~a}o, Carlos",
+title="SafeAR: Privacy-Maintenance in Augmented Reality Applications",
+booktitle="Service-Oriented and Cloud Computing",
+year="2025",
+publisher="Springer Nature Switzerland",
+pages="146--151",
+isbn="978-3-031-84617-5"
+doi="10.1007/978-3-031-84617-5_12"
+}
+
+```bibtex
+@InProceedings{10.1007/978-3-031-84617-5_12,
+author=Alves, M., Ribeiro, T., Marto, A., Gonçalves, A., Rabadão, C., Santos, L., & de C. Costa, R. L.,
+title="Evaluating Service-based Privacy-Protection for Augmented Reality Applications",
+booktitle="Management of Digital EcoSystems",
+year="2025",
+publisher="Springer Nature Switzerland",
+}
+
+
+
 Future work
 -----
 
